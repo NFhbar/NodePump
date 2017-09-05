@@ -16,24 +16,24 @@
 //VARIABLES
 //===============================================
 //Variables that can be modified
-var percentDif = 5;           //variable to check for percentage difference check
-var timeInterval = 30000;     //time to wait before iterations in milliseconds
-var timeIntervalSecs = timeInterval/1000;
-var iterations = 10;          //number of iterations to run script
+var percentDif = 5; //variable to check for percentage difference check
+var timeInterval = 30000; //time to wait before iterations in milliseconds
+var timeIntervalSecs = timeInterval / 1000;
+var iterations = 20; //number of iterations to run script
 //==============================================
 
 //Variables (do not modify)
-var request = require("request-promise");        //What is this?
-var bittrex = require("node.bittrex.api");       //What is this?
+var request = require("request-promise"); //What is this?
+var bittrex = require("node.bittrex.api"); //What is this?
 const TEST_URI = "https://bittrex.com/api/v1.1/public/getmarketsummaries"; //bittrex API
-var previousResult = [];   //array to store first check of last price
-var nextResult = [];       //array to store second check of last price
-var count = 0;             //variable to count number of iterations
-var numbersToNamesHash = {};    //array to store ticker name and both last prices
-var differenceArray = [];       //array to store difference between last prices
+var previousResult = []; //array to store first check of last price
+var nextResult = []; //array to store second check of last price
+var count = 0; //variable to count number of iterations
+var numbersToNamesHash = {}; //array to store ticker name and both last prices
+var differenceArray = []; //array to store difference between last prices
 var previousHash = {};
 var nextHash = {};
-var dif = 0;                    //variable to store percentage difference
+var dif = 0; //variable to store percentage difference
 //=====================================================
 
 
@@ -61,6 +61,22 @@ request(reqOptions)
     console.log("request failed : " + err);
   });
 
+  //Function to keep track of detected Pumps
+  // function keepTrackMarkets(markets) {
+  //   var marketsArray = markets;           //setup array for strings
+  //   var marketsObject = {};               //Setup object for markets + strength
+  //
+  //   for (var i=0; i<marketsArray.length; i++) {
+  //     var marketToCheck = marketsArray[i];
+  //     if (marketsObject[marketToCheck] == undefined) {
+  //       //market doesn't exist, add it as a key and set strength value to 1
+  //       marketsObject[marketToCheck] = 1;
+  //     } else {
+  //       //market exist, increment strength by 1
+  //       marketsObject[marketToCheck] += 1;
+  //     }
+  //   }
+  // }
 
 
 var intervalObject = setInterval(
