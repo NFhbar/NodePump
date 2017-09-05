@@ -6,6 +6,7 @@
 // move to directory
 // : npm init
 // : npm install
+// : npm install --save request-promise
 // : npm install --save node.bittrex.api"
 // : node basicBitrexQuery.js
 // this will dump the basic query into the console
@@ -16,7 +17,8 @@
 //===============================================
 //Variables that can be modified
 var percentDif = 5;           //variable to check for percentage difference check
-var timeInterval = 50000;     //time to wait before iterations in milliseconds
+var timeInterval = 30000;     //time to wait before iterations in milliseconds
+var timeIntervalSecs = timeInterval/1000;
 var iterations = 10;          //number of iterations to run script
 //==============================================
 
@@ -29,6 +31,8 @@ var nextResult = [];       //array to store second check of last price
 var count = 0;             //variable to count number of iterations
 var numbersToNamesHash = {};    //array to store ticker name and both last prices
 var differenceArray = [];       //array to store difference between last prices
+var previousHash = {};
+var nextHash = {};
 var dif = 0;                    //variable to store percentage difference
 //=====================================================
 
@@ -48,6 +52,10 @@ var reqOptions = {
 request(reqOptions)
   .then(function(parsedBody) {
     previousResult = parsedBody.result;
+    previousResult.forEach(result => {
+      previousHash[result.MarketName] = result.Last;
+    });
+    // console.log(previousHash);
   })
   .catch(function(err) {
     console.log("request failed : " + err);
@@ -57,6 +65,11 @@ request(reqOptions)
 
 var intervalObject = setInterval(
   function() {
+
+    console.log("---------------");
+    console.log(`Starting iteration ${count} of ${iterations}`);
+    console.log(`Seconds between iterations ${timeIntervalSecs}`);
+
     request(reqOptions)
       .then(function(parsedBody) {
         // reset the storage arrays
@@ -65,22 +78,32 @@ var intervalObject = setInterval(
 
         //load up the difference arrays and hashes
         nextResult = parsedBody.result;
-        if (previousResult.length === nextResult.length) {
-          nextResult.forEach((element, i, array) => {
-            dif = nextResult[i].Last / previousResult[i].Last * 100 - 100;
-            // console.log(dif);
-            if (dif > percentDif) {
-              numbersToNamesHash[dif] = {
-                name: element.MarketName,
-                last: nextResult[i].Last,
-                prev: previousResult[i].Last
-              };
-              differenceArray.push(dif);
-            }
-          });
-        } else {
+        // console.log(nextResult[0]);
+        //load up the nextHash array of names to numbers to help comparison
+        nextResult.forEach(result => {
+          nextHash[result.MarketName] = result.Last;
+        });
+
+        // console.log(`THis many keys: ${Object.keys(nextHash).length}`);
+
+        Object.keys(nextHash).forEach(market => {
+          // critical percentage difference calculation
+          dif = nextHash[market] / previousHash[market] * 100 - 100;
+
+          // if the delta is positive, add it to the helpers
+          if (dif != 0 && dif > percentDif) {
+            numbersToNamesHash[dif] = {
+              MarketName: market,
+              prev: previousHash[market],
+              next: nextHash[market]
+            };
+            differenceArray.push(dif);
+          }
+        });
+
+        if (previousResult.length !== nextResult.length) {
           console.log(
-            "WARNING: length match failure, different number of coins returned. Comparison failed."
+            "WARNING: different numbers of results returned. Chart missing."
           );
         }
 
@@ -91,28 +114,36 @@ var intervalObject = setInterval(
 
         //iterate through the difference array and log out names and percentages
         differenceArray.forEach((elem, i, array) => {
+          var tick = numbersToNamesHash[elem];
           console.log(
-            `${numbersToNamesHash[elem].name} increased ${elem.toFixed(
+            `${tick.MarketName} ${elem > 0
+              ? "increased"
+              : "decreased"} ${elem.toFixed(
               5
-            )}% from ${numbersToNamesHash[elem].prev} to ${numbersToNamesHash[
-              elem
-            ].last}`
+            )}% from ${tick.prev} to ${tick.next}`
           );
         });
         console.log("---------------");
 
         //make the new result into the old one for the next loop
         previousResult = nextResult;
+        previousHash = new Object();
+
+        Object.keys(nextHash).forEach(MarketName => {
+          previousHash[MarketName] = nextHash[MarketName];
+        });
       })
+
       .catch(function(err) {
         console.log("request failed : " + err);
       });
     count++;
 
-    // adjust the count here or comment this out to disable automatic shutdowns
-    if (count == iterations) {
-      console.log(`exiting after ${count} iterations`);
-      clearInterval(intervalObject);
+    if (iterations > 0) {
+      if (count == iterations) {
+        console.log(`exiting after ${count} iterations`);
+        clearInterval(intervalObject);
+      }
     }
   },
   //adjust this number in milliseconds to change the polling time
